@@ -1,1 +1,7 @@
 __pycache__/
+
+show-attend-tell/pretrained/*
+!show-attend-tell/pretrained/README.md
+
+learn-to-pay-attention/before-pretrained/*
+!learn-to-pay-attention/before-pretrained/README.md
