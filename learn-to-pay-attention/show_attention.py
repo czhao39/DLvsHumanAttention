@@ -1,6 +1,8 @@
+import os
 import argparse
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torchvision.transforms as transforms
 from model1 import AttnVGG_before
 from model2 import AttnVGG_after
@@ -17,6 +19,7 @@ parser = argparse.ArgumentParser(description="LearnToPayAttn-CIFAR100")
 
 parser.add_argument('--img', '-i', help='path to image')
 parser.add_argument('--model', '-m', help='path to model')
+parser.add_argument("--save", action="store_true", help="if True, output attention maps to files")
 parser.add_argument("--attn_mode", type=str, default="before", help='insert attention modules before OR after maxpooling layers')
 
 parser.add_argument("--normalize_attn", action='store_true', help='if True, attention map is normalized by softmax; otherwise use sigmoid')
@@ -79,6 +82,11 @@ def main():
     model = net
 
 
+    if opt.save:
+        print("\nwill save heatmaps\n")
+        file_prefix = os.path.splitext(os.path.basename(opt.img))[0]
+
+
     with torch.no_grad():
         print('\nlog attention maps ...\n')
         # base factor
@@ -96,13 +104,13 @@ def main():
         fig, axs = plt.subplots(1, 4)
         axs[0].imshow(orig_img)
         if c1 is not None:
-            attn1 = vis_fun(img, c1, up_factor=min_up_factor, nrow=1)
+            attn1 = vis_fun(img, c1, up_factor=min_up_factor, nrow=1, hm_file=None if not opt.save else file_prefix + "_c1.npy")
             axs[1].imshow(attn1.numpy().transpose(1, 2, 0))
         if c2 is not None:
-            attn2 = vis_fun(img, c2, up_factor=min_up_factor*2, nrow=1)
+            attn2 = vis_fun(img, c2, up_factor=min_up_factor*2, nrow=1, hm_file=None if not opt.save else file_prefix + "_c2.npy")
             axs[2].imshow(attn2.numpy().transpose(1, 2, 0))
         if c3 is not None:
-            attn3 = vis_fun(img, c3, up_factor=min_up_factor*4, nrow=1)
+            attn3 = vis_fun(img, c3, up_factor=min_up_factor*4, nrow=1, hm_file=None if not opt.save else file_prefix + "_c3.npy")
             axs[3].imshow(attn3.numpy().transpose(1, 2, 0))
         plt.show()
 
