@@ -18,7 +18,11 @@ Learn to Pay Attention
 
 PyTorch implementation and pre-trained model taken from [https://github.com/SaoYan/LearnToPayAttention](https://github.com/SaoYan/LearnToPayAttention).
 
-From inside `learn-to-pay-attention/`, run
+From inside `learn-to-pay-attention/`, for paying attention before max-pooling layers, run
 ```
-python3 show_attention.py --img ../doggo.jpg --model before-pretrained/net.pth  --normalize_attn
+python3 show_attention.py --img ../doggo.jpg --attn_mode before --model pretrained-before/net.pth --normalize_attn
+```
+For paying attention after max-pooling layers, run
+```
+python3 show_attention.py --img ../doggo.jpg --attn_mode after --model pretrained-after/net.pth  --normalize_attn
 ```
