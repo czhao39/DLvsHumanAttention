@@ -94,7 +94,7 @@ def main():
 
             batch = image[np.newaxis, :, :, :]
             pred, __, __, __ = model(batch)
-            results.append((torch.max(pred).item(), img_file.path))
+            results.append((torch.max(pred).item(), img_file.name))
 
 
     sorted_results = sorted(results, reverse=True)
