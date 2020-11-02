@@ -94,11 +94,12 @@ def main():
 
             batch = image[np.newaxis, :, :, :]
             pred, __, __, __ = model(batch)
-            results.append((torch.max(F.softmax(pred, dim=1)).item(), img_file.name))
+            out, cls = torch.max(F.softmax(pred, dim=1), 1)
+            results.append((out.item(), cls.item(), img_file.name))
 
 
     sorted_results = sorted(results, reverse=True)
-    print("\n".join(f"{result[1]} {result[0]}" for result in sorted_results[:opt.num_images]))
+    print("\n".join(f"{result[2]} {result[0]} {result[1]}" for result in sorted_results[:opt.num_images]))
 
 
 if __name__ == "__main__":
