@@ -20,9 +20,9 @@ PyTorch implementation and pre-trained model taken from [https://github.com/SaoY
 
 From inside `learn-to-pay-attention/`, for paying attention before max-pooling layers, run
 ```
-python3 show_attention.py --img ../doggo.jpg --attn_mode before --model pretrained-before/net.pth --normalize_attn
+python3 get_attention_heatmaps.py --img ../doggo.jpg --attn_mode before --model pretrained-before/net.pth --normalize_attn
 ```
 For paying attention after max-pooling layers, run
 ```
-python3 show_attention.py --img ../doggo.jpg --attn_mode after --model pretrained-after/net.pth  --normalize_attn
+python3 get_attention_heatmaps.py --img ../doggo.jpg --attn_mode after --model pretrained-after/net.pth  --normalize_attn
 ```
