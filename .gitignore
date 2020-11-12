@@ -7,3 +7,8 @@ learn-to-pay-attention/pretrained-before/*
 !learn-to-pay-attention/pretrained-before/README.md
 learn-to-pay-attention/pretrained-after/*
 !learn-to-pay-attention/pretrained-after/README.md
+
+attention-branch-network/pretrained-cifar100-resnet110/*
+!attention-branch-network/pretrained-cifar100-resnet110/README.md
+attention-branch-network/pretrained-imagenet2012-resnet50/*
+!attention-branch-network/pretrained-imagenet2012-resnet50/README.md

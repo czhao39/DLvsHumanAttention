@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 parser = argparse.ArgumentParser(description="LearnToPayAttn-CIFAR100")
 
 parser.add_argument("--img", "-i", help="path to image")
-parser.add_argument("--img_dir", "-d", help="path to image")
+parser.add_argument("--img_dir", "-d", help="path to images")
 parser.add_argument("--output_dir", "-o", help="path to output attention heatmaps")
 parser.add_argument("--model", "-m", required=True, help="path to model")
 parser.add_argument("--attn_mode", type=str, default="before", help='insert attention modules before OR after maxpooling layers')
@@ -105,7 +105,7 @@ def main():
             img = img.transpose(2, 0, 1)
             img = img / 255.
             img = torch.FloatTensor(img).to(device)
-            image = transform_test(img)  # (3, 256, 256)
+            image = transform_test(img)  # (3, 32, 32)
 
             if opt.output_dir:
                 file_prefix = os.path.join(opt.output_dir, os.path.splitext(os.path.basename(filename))[0])
