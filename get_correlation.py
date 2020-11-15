@@ -11,13 +11,14 @@ from PIL import Image
 parser = argparse.ArgumentParser()
 parser.add_argument("--input_file", "-i", required=True, help="path to a file containing image file names")
 parser.add_argument("--dir", "-d", required=True, action="append", help="a directory of heatmaps (use mutliple times for comparing heatmaps)")
+parser.add_argument("--size", "-s", type=int, default=32, help="scale heatmaps to this size")
 parser.add_argument("--fig_dir", "-o", help="directory to output comparison figures to")
 parser.add_argument("--img_dir", "-m", help="image directory (only used if --fig_dir passed)")
 opt = parser.parse_args()
 
 
 def main():
-    dim = (32, 32)
+    dim = (opt.size, opt.size)
     with open(opt.input_file) as infile:
         filenames = [line.split()[0] for line in infile.readlines()]
     xi = [[] for _ in range(len(opt.dir))]
