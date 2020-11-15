@@ -34,11 +34,13 @@ parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet',
                     help='model architecture: ' +
                         ' | '.join(model_names) +
                         ' (default: resnet)')
-parser.add_argument('--depth', type=int, default=110, help='Model depth.')
+parser.add_argument('--depth', type=int, default=100, help='Model depth.')
 parser.add_argument('--cardinality', type=int, default=8, help='Model cardinality (group).')
 parser.add_argument('--widen-factor', type=int, default=4, help='Widen factor. 4 -> 64, 8 -> 128, ...')
 parser.add_argument('--growthRate', type=int, default=12, help='Growth rate for DenseNet.')
 parser.add_argument('--compressionRate', type=int, default=2, help='Compression Rate (theta) for DenseNet.')
+parser.add_argument('--drop', '--dropout', default=0, type=float,
+                    metavar='Dropout', help='Dropout ratio')
 #Device options
 parser.add_argument('--gpu-id', default='0', type=str,
                     help='id(s) for CUDA_VISIBLE_DEVICES')
@@ -144,7 +146,7 @@ def main():
         else:
             outpath = None
 
-        attn_img = visualize_attn(img, attention, up_factor=2, hm_file=outpath)
+        attn_img = visualize_attn(img, attention, up_factor=32/attention.shape[2], hm_file=outpath)
         if display_fig:
             fig, axs = plt.subplots(1, 2)
             axs[0].imshow(orig_img)

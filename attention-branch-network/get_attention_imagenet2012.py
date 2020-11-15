@@ -130,7 +130,7 @@ def main():
         else:
             outpath = None
 
-        attn_img = visualize_attn(img, attention[0], up_factor=16, hm_file=outpath)
+        attn_img = visualize_attn(img, attention[0], up_factor=224/attention[0].shape[2], hm_file=outpath)
         if display_fig:
             fig, axs = plt.subplots(1, 2)
             axs[0].imshow(orig_img)
