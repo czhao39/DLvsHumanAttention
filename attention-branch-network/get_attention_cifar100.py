@@ -26,6 +26,8 @@ parser = argparse.ArgumentParser(description='PyTorch CIFAR10/100 Attention')
 parser.add_argument('--model', '-m', default='', type=str, metavar='PATH',
                     help='path to model (default: none)')
 parser.add_argument('--img', '-i', help='path to image')
+parser.add_argument('--img_dir', '-d', help='path to images')
+parser.add_argument('--output_dir', '-o', help='path to output attention heatmaps')
 # Architecture
 parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet',
                     choices=model_names,
@@ -103,6 +105,9 @@ def main():
         checkpoint = torch.load(args.model)
         model.load_state_dict(checkpoint['state_dict'])
 
+    if args.output_dir:
+        print("\nwill save heatmaps\n")
+
     # switch to evaluate mode
     model.eval()
 
@@ -134,10 +139,15 @@ def main():
         batch = image[np.newaxis, :, :, :]
         _, outputs, attention = model(batch)
 
+        if args.output_dir:
+            outpath = os.path.join(args.output_dir, os.path.splitext(os.path.basename(filename))[0] + ".npy")
+        else:
+            outpath = None
+
+        attn_img = visualize_attn(img, attention, up_factor=2, hm_file=outpath)
         if display_fig:
             fig, axs = plt.subplots(1, 2)
             axs[0].imshow(orig_img)
-            attn_img = visualize_attn(img, attention, up_factor=2)
             axs[1].imshow(attn_img)
             plt.show()
 
@@ -150,7 +160,7 @@ def visualize_attn(img, attn, up_factor, hm_file=None):
     if up_factor > 1:
         attn = F.interpolate(attn, scale_factor=up_factor, mode="bilinear", align_corners=False)
     if hm_file is not None:
-        np.save(hm_file, attn.cpu().detach.numpy()[0, 0])
+        np.save(hm_file, attn.cpu().detach().numpy()[0, 0])
     attn = attn[0].permute((1,2,0)).mul(255).byte().cpu().detach().numpy()
     attn = cv2.applyColorMap(attn, cv2.COLORMAP_JET)
     attn = cv2.cvtColor(attn, cv2.COLOR_BGR2RGB)
