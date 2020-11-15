@@ -33,6 +33,7 @@ parser = argparse.ArgumentParser(description='PyTorch ImageNet Attention')
 parser.add_argument('--model', '-m', default='', type=str, metavar='PATH',
                     help='path to model (default: none)')
 parser.add_argument('--img', '-i', help='path to image')
+parser.add_argument('--initial_resize', '-r', type=int, help='lower the resolution of input images')
 # Architecture
 parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet50',
                     choices=model_names,
@@ -106,6 +107,8 @@ def main():
         if len(img.shape) == 2:
             img = img[:, :, np.newaxis]
             img = np.concatenate([img, img, img], axis=2)
+        if args.initial_resize is not None:
+            img = np.array(Image.fromarray(img).resize((args.initial_resize, args.initial_resize)))
         img = np.array(Image.fromarray(img).resize((im_size, im_size)))
         orig_img = img.copy()
         img = img.transpose(2, 0, 1)
