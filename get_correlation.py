@@ -14,6 +14,7 @@ parser.add_argument("--dir", "-d", required=True, action="append", help="a direc
 parser.add_argument("--size", "-s", type=int, default=32, help="scale heatmaps to this size")
 parser.add_argument("--fig_dir", "-o", help="directory to output comparison figures to")
 parser.add_argument("--img_dir", "-m", help="image directory (only used if --fig_dir passed)")
+parser.add_argument("--get_corr_distr", "-g", action="store_true", help="get distribution (mean and standard deviation) of random correlations by bootstrapping")
 opt = parser.parse_args()
 
 
@@ -61,8 +62,23 @@ def main():
             plt.savefig(outpath, dpi=200, bbox_inches="tight")
             plt.close()
 
+    N = 500  # sample size to compute correlation distribution
     for i in range(1, len(xi)):
-        print(np.corrcoef(xi[0], xi[i])[0, 1])
+        corr = np.corrcoef(xi[0], xi[i])[0, 1]
+        corrs = []
+        for _ in range(N):
+            shuffled = []
+            im_size = dim[0] * dim[1]
+            for j in range(0, len(xi[i]), im_size):
+                xii_shuffled = xi[i][j:j+im_size].copy()
+                np.random.shuffle(xii_shuffled)
+                shuffled.extend(xii_shuffled)
+            corrs.append(np.corrcoef(xi[0], shuffled)[0, 1])
+        mean = np.mean(corrs)
+        std = np.std(corrs)
+        z = (corr - mean) / std
+        print(f"Corr: {corr}, Z: {z}")
+        print(f"Mean: {mean}, Std Dev: {std}\n")
 
 
 if __name__ == "__main__":
