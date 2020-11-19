@@ -48,11 +48,11 @@ def main():
             fig, axs = plt.subplots(1, len(heatmaps)+1, figsize=(3*(len(heatmaps)+1), 4))
             axs[0].imshow(im / 255.0)
 
-            hm_ref = cv2.applyColorMap((heatmaps[0] / heatmaps[0].max() * 255).astype(np.uint8), cv2.COLORMAP_JET) / 255.0
+            hm_ref = cv2.cvtColor(cv2.applyColorMap((heatmaps[0] * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB) / 255.0
             axs[1].imshow(im_resized*0.6 + hm_ref*0.4)
 
             for i in range(1, len(heatmaps)):
-                hm = cv2.applyColorMap((heatmaps[i]*255).astype(np.uint8), cv2.COLORMAP_JET) / 255.0
+                hm = cv2.cvtColor(cv2.applyColorMap((heatmaps[i] * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB) / 255.0
                 axs[i+1].imshow(im_resized*0.6 + hm*0.4)
                 corr = np.corrcoef(heatmaps_raveled[0], heatmaps_raveled[i])[0, 1]
                 axs[i+1].set_title(f"Corr: {corr:.3f}")
@@ -62,23 +62,24 @@ def main():
             plt.savefig(outpath, dpi=200, bbox_inches="tight")
             plt.close()
 
-    N = 500  # sample size to compute correlation distribution
+    N = 200  # sample size to compute correlation distribution
     for i in range(1, len(xi)):
         corr = np.corrcoef(xi[0], xi[i])[0, 1]
-        corrs = []
-        for _ in range(N):
-            shuffled = []
-            im_size = dim[0] * dim[1]
-            for j in range(0, len(xi[i]), im_size):
-                xii_shuffled = xi[i][j:j+im_size].copy()
-                np.random.shuffle(xii_shuffled)
-                shuffled.extend(xii_shuffled)
-            corrs.append(np.corrcoef(xi[0], shuffled)[0, 1])
-        mean = np.mean(corrs)
-        std = np.std(corrs)
-        z = (corr - mean) / std
-        print(f"Corr: {corr}, Z: {z}")
-        print(f"Mean: {mean}, Std Dev: {std}\n")
+        print(f"Corr: {corr}")
+        if opt.get_corr_distr:
+            corrs = []
+            for _ in range(N):
+                shuffled = []
+                im_size = dim[0] * dim[1]
+                for j in range(0, len(xi[i]), im_size):
+                    xii_shuffled = xi[i][j:j+im_size].copy()
+                    np.random.shuffle(xii_shuffled)
+                    shuffled.extend(xii_shuffled)
+                corrs.append(np.corrcoef(xi[0], shuffled)[0, 1])
+            mean = np.mean(corrs)
+            std = np.std(corrs)
+            z = (corr - mean) / std
+            print(f"Z: {z}, Mean: {mean}, Std Dev: {std}\n")
 
 
 if __name__ == "__main__":
