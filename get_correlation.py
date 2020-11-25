@@ -14,11 +14,13 @@ parser.add_argument("--dir", "-d", required=True, action="append", help="a direc
 parser.add_argument("--size", "-s", type=int, default=32, help="scale heatmaps to this size")
 parser.add_argument("--fig_dir", "-o", help="directory to output comparison figures to")
 parser.add_argument("--img_dir", "-m", help="image directory (only used if --fig_dir passed)")
-parser.add_argument("--get_corr_distr", "-g", action="store_true", help="get distribution (mean and standard deviation) of random correlations by bootstrapping")
+parser.add_argument("--get_std_err", "-e", action="store_true", help="get correlation standard error by bootstrapping")
+parser.add_argument("--get_rand_distr", "-g", action="store_true", help="get distribution (mean and standard deviation) of random correlations by bootstrapping")
 opt = parser.parse_args()
 
 
 def main():
+    N = 500  # sample size for bootstrapping
     dim = (opt.size, opt.size)
     with open(opt.input_file) as infile:
         filenames = [line.split()[0] for line in infile.readlines()]
@@ -62,15 +64,25 @@ def main():
             plt.savefig(outpath, dpi=200, bbox_inches="tight")
             plt.close()
 
-    N = 200  # sample size to compute correlation distribution
+    xi = [np.array(xii) for xii in xi]
+
+    im_size = dim[0] * dim[1]
     for i in range(1, len(xi)):
         corr = np.corrcoef(xi[0], xi[i])[0, 1]
-        print(f"Corr: {corr}")
-        if opt.get_corr_distr:
+        if opt.get_std_err:
+            corrs = []
+            for _ in range(N):
+                inds = np.random.randint(len(xi[0]), size=len(xi[0]))
+                corrs.append(np.corrcoef(xi[0][inds], xi[i][inds])[0, 1])
+            std = np.std(corrs)
+            print(f"Corr: {corr} ({std})")
+        else:
+            print(f"Corr: {corr}")
+
+        if opt.get_rand_distr:
             corrs = []
             for _ in range(N):
                 shuffled = []
-                im_size = dim[0] * dim[1]
                 for j in range(0, len(xi[i]), im_size):
                     xii_shuffled = xi[i][j:j+im_size].copy()
                     np.random.shuffle(xii_shuffled)
