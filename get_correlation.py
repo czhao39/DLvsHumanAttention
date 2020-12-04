@@ -52,12 +52,20 @@ def main():
 
             hm_ref = cv2.cvtColor(cv2.applyColorMap((heatmaps[0] * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB) / 255.0
             axs[1].imshow(im_resized*0.6 + hm_ref*0.4)
+            dir_name = os.path.basename(opt.dir[0])
+            axs[1].set_xlabel(dir_name[:dir_name.rfind("_")])
 
             for i in range(1, len(heatmaps)):
                 hm = cv2.cvtColor(cv2.applyColorMap((heatmaps[i] * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB) / 255.0
                 axs[i+1].imshow(im_resized*0.6 + hm*0.4)
                 corr = np.corrcoef(heatmaps_raveled[0], heatmaps_raveled[i])[0, 1]
                 axs[i+1].set_title(f"Corr: {corr:.3f}")
+                dir_name = os.path.basename(opt.dir[i])
+                axs[i+1].set_xlabel(dir_name[:dir_name.rfind("_")])
+
+            for ax in axs:
+                ax.xaxis.set_ticks([])
+                ax.yaxis.set_ticks([])
 
             fig.suptitle(f"{im_name}")
             plt.tight_layout()
