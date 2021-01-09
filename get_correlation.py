@@ -10,9 +10,10 @@ from PIL import Image
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--input_file", "-i", required=True, help="path to a file containing image file names")
-parser.add_argument("--dir", "-d", required=True, action="append", help="a directory of heatmaps (use mutliple times for comparing heatmaps)")
+parser.add_argument("--dir", "-d", required=True, action="append", help="a directory of heatmaps (use multiple times for comparing heatmaps)")
 parser.add_argument("--size", "-s", type=int, default=32, help="scale heatmaps to this size")
 parser.add_argument("--fig_dir", "-o", help="directory to output comparison figures to")
+parser.add_argument("--agg_fig_dir", "-a", type=str, help="output aggregated figures to this path")
 parser.add_argument("--img_dir", "-m", help="image directory (only used if --fig_dir passed)")
 parser.add_argument("--get_std_err", "-e", action="store_true", help="get correlation standard error by bootstrapping")
 parser.add_argument("--get_rand_distr", "-g", action="store_true", help="get distribution (mean and standard deviation) of random correlations by bootstrapping")
@@ -22,15 +23,19 @@ opt = parser.parse_args()
 def main():
     N = 500  # sample size for bootstrapping
     dim = (opt.size, opt.size)
+    xi = [[] for _ in range(len(opt.dir))]
+    if opt.agg_fig_dir:
+        all_figs = []
+        all_corrs = []
     with open(opt.input_file) as infile:
         filenames = [line.split()[0] for line in infile.readlines()]
-    xi = [[] for _ in range(len(opt.dir))]
     for fn in filenames:
         im_name = os.path.splitext(fn)[0]
         fn = f"{im_name}.npy"
 
         heatmaps = []
         heatmaps_raveled = []
+
         for i, d in enumerate(opt.dir):
             path = os.path.join(d, fn)
             hm = np.array(Image.fromarray(np.load(path)).resize(dim))
@@ -41,36 +46,63 @@ def main():
             hm /= hm.max()
             heatmaps.append(hm)
 
-        if opt.fig_dir is not None:
-            outpath = os.path.join(opt.fig_dir, f"{im_name}.png")
-            im_path = os.path.join(opt.img_dir, f"{im_name}.jpg")
-            im = imread(im_path)
-            im_resized = np.array(Image.fromarray(im).resize(dim)) / 255.0
+        im_path = os.path.join(opt.img_dir, f"{im_name}.jpg")
+        im = imread(im_path)
+        im_resized = np.array(Image.fromarray(im).resize(dim)) / 255.0
 
-            fig, axs = plt.subplots(1, len(heatmaps)+1, figsize=(3*(len(heatmaps)+1), 4))
-            axs[0].imshow(im / 255.0)
+        fig, axs = plt.subplots(1, len(heatmaps)+1, figsize=(3*(len(heatmaps)+1), 4))
+        axs[0].imshow(im / 255.0)
 
-            hm_ref = cv2.cvtColor(cv2.applyColorMap((heatmaps[0] * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB) / 255.0
-            axs[1].imshow(im_resized*0.6 + hm_ref*0.4)
-            dir_name = os.path.basename(opt.dir[0])
-            axs[1].set_xlabel(dir_name[:dir_name.rfind("_")])
+        hm_ref = cv2.cvtColor(cv2.applyColorMap((heatmaps[0] * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB) / 255.0
+        axs[1].imshow(im_resized*0.6 + hm_ref*0.4)
+        dir_name = os.path.basename(opt.dir[0])
+        axs[1].set_xlabel(dir_name[:dir_name.rfind("_")])
 
-            for i in range(1, len(heatmaps)):
-                hm = cv2.cvtColor(cv2.applyColorMap((heatmaps[i] * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB) / 255.0
-                axs[i+1].imshow(im_resized*0.6 + hm*0.4)
-                corr = np.corrcoef(heatmaps_raveled[0], heatmaps_raveled[i])[0, 1]
-                axs[i+1].set_title(f"Corr: {corr:.3f}")
-                dir_name = os.path.basename(opt.dir[i])
-                axs[i+1].set_xlabel(dir_name[:dir_name.rfind("_")])
+        corrs = []
+        for i in range(1, len(heatmaps)):
+            hm = cv2.cvtColor(cv2.applyColorMap((heatmaps[i] * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB) / 255.0
+            axs[i+1].imshow(im_resized*0.6 + hm*0.4)
+            corr = np.corrcoef(heatmaps_raveled[0], heatmaps_raveled[i])[0, 1]
+            corrs.append(corr)
+            axs[i+1].set_title(f"Corr: {corr:.3f}")
+            dir_name = os.path.basename(opt.dir[i])
+            axs[i+1].set_xlabel(dir_name[:dir_name.rfind("_")])
 
-            for ax in axs:
-                ax.xaxis.set_ticks([])
-                ax.yaxis.set_ticks([])
+        for ax in axs:
+            ax.xaxis.set_ticks([])
+            ax.yaxis.set_ticks([])
 
+        if opt.fig_dir or opt.agg_fig_dir:
             fig.suptitle(f"{im_name}")
             plt.tight_layout()
-            plt.savefig(outpath, dpi=200, bbox_inches="tight")
-            plt.close()
+
+            if opt.fig_dir:
+                outpath = os.path.join(opt.fig_dir, f"{im_name}.png")
+                plt.savefig(outpath, dpi=100, bbox_inches="tight")
+
+            if opt.agg_fig_dir:
+                fig.canvas.draw()
+                fig_rgb = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+                width, height = fig.get_size_inches() * fig.get_dpi()
+                width, height = int(width), int(height)
+                fig_rgb = fig_rgb.reshape(height, width, 3)
+                all_figs.append(fig_rgb)
+                all_corrs.append(corrs)
+
+        plt.close()
+
+    if opt.agg_fig_dir:
+        # Output aggregated figures sorted by each correlation column
+        print("Outputting sorted aggregated figures...")
+        for i in range(1, len(opt.dir)):
+            sorted_figs = sorted(enumerate(all_figs), key=lambda tup: all_corrs[tup[0]][i-1])
+            sorted_figs = [tup[1] for tup in sorted_figs]
+            im = Image.fromarray(np.vstack(sorted_figs)).resize((200*(len(opt.dir)+1), 250*len(sorted_figs)))
+            dir_name = os.path.basename(opt.dir[i])
+            map_name = dir_name[:dir_name.rfind("_")]
+            outpath = os.path.join(opt.agg_fig_dir, f"{map_name}.png")
+            im.save(outpath)
+        print("Done.")
 
     xi = [np.array(xii) for xii in xi]
 
