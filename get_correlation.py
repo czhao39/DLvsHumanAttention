@@ -1,5 +1,6 @@
-import os
 import argparse
+import os
+import pickle
 
 import cv2
 from imageio import imread
@@ -103,6 +104,10 @@ def main():
             outpath = os.path.join(opt.agg_fig_dir, f"{map_name}.png")
             im.save(outpath)
         print("Done.")
+        corrs_path = os.path.join(opt.agg_fig_dir, "correlations.pkl")
+        img_to_corrs = dict(zip(filenames, all_corrs))
+        with open(corrs_path, "wb") as outfile:
+            pickle.dump(img_to_corrs, outfile)
 
     xi = [np.array(xii) for xii in xi]
 
