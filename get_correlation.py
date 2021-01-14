@@ -90,6 +90,9 @@ def main():
                 width, height = fig.get_size_inches() * fig.get_dpi()
                 width, height = int(width), int(height)
                 fig_rgb = fig_rgb.reshape(height, width, 3)
+                new_width = int(150 * (2 + len(opt.fixation_heatmaps_dir)))
+                new_height = int(new_width / width * height)
+                fig_rgb = np.array(Image.fromarray(fig_rgb).resize((new_width, new_height)))
                 all_figs.append(fig_rgb)
                 all_corrs.append(corrs)
 
@@ -101,7 +104,7 @@ def main():
         for i, d in enumerate(opt.fixation_heatmaps_dir):
             sorted_figs = sorted(enumerate(all_figs), key=lambda tup: all_corrs[tup[0]][i])
             sorted_figs = [tup[1] for tup in sorted_figs]
-            im = Image.fromarray(np.vstack(sorted_figs)).resize((200*(2+len(opt.fixation_heatmaps_dir)), 250*len(sorted_figs)))
+            im = Image.fromarray(np.vstack(sorted_figs))
             dir_name = os.path.basename(opt.fixation_heatmaps_dir[i])
             map_name = dir_name[:dir_name.rfind("_")]
             outpath = os.path.join(opt.agg_fig_dir, f"{map_name}.png")
