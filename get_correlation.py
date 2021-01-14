@@ -17,6 +17,7 @@ parser.add_argument("--size", "-s", type=int, default=32, help="scale heatmaps t
 parser.add_argument("--fig_dir", "-o", help="directory to output comparison figures to")
 parser.add_argument("--agg_fig_dir", "-a", type=str, help="output aggregated figures to this path")
 parser.add_argument("--img_dir", "-d", help="image directory (only used if --fig_dir passed)")
+parser.add_argument("--baseline_weight", "-b", type=float, default=0, help="amount of weight (0 to 1) given to baseline (average) fixation heatmaps")
 parser.add_argument("--get_std_err", "-e", action="store_true", help="get correlation standard error by bootstrapping")
 parser.add_argument("--get_rand_distr", "-g", action="store_true", help="get distribution (mean and standard deviation) of random correlations by bootstrapping")
 opt = parser.parse_args()
@@ -28,6 +29,22 @@ def main():
     with open(opt.input_file) as infile:
         filenames = [line.split()[0] for line in infile.readlines()]
 
+    if opt.baseline_weight > 0:
+        print("Computing baseline (average) fixation heatmaps...")
+        baseline_heatmaps = [np.zeros(dim) for _ in range(len(opt.fixation_heatmaps_dir))]
+        for fn in filenames:
+            im_name = os.path.splitext(fn)[0]
+            fn = f"{im_name}.npy"
+            for i, d in enumerate(opt.fixation_heatmaps_dir):
+                path = os.path.join(d, fn)
+                hm = np.array(Image.fromarray(np.load(path)).resize(dim))
+                hm /= hm.sum()
+                baseline_heatmaps[i] += hm
+        baseline_heatmaps = [hm / hm.sum() for hm in baseline_heatmaps]
+
+    #plt.matshow(baseline_heatmaps[0])
+    #plt.show()
+
     print("Computing correlations and generating figures...")
     xi = [[] for _ in range(1 + len(opt.fixation_heatmaps_dir))]
     if opt.agg_fig_dir:
@@ -38,14 +55,26 @@ def main():
         fn = f"{im_name}.npy"
 
         heatmaps = []
-        heatmaps_raveled = []
+        heatmaps_flattened = []
 
-        for i, d in enumerate([opt.model_heatmaps_dir] + opt.fixation_heatmaps_dir):
+        path = os.path.join(opt.model_heatmaps_dir, fn)
+        hm = np.array(Image.fromarray(np.load(path)).resize(dim))
+        hm /= hm.sum()
+        heatmaps_flattened.append(hm.flatten())
+        xi[0].extend(heatmaps_flattened[-1])
+        hm -= hm.min()
+        hm /= hm.max()
+        heatmaps.append(hm)
+        for i, d in enumerate(opt.fixation_heatmaps_dir, start=1):
             path = os.path.join(d, fn)
             hm = np.array(Image.fromarray(np.load(path)).resize(dim))
             hm /= hm.sum()
-            heatmaps_raveled.append(hm.ravel())
-            xi[i].extend(heatmaps_raveled[-1])
+            if opt.baseline_weight > 0:
+                gain_weight = 1.0 - opt.baseline_weight
+                hm = 1.0/gain_weight * (hm - opt.baseline_weight * baseline_heatmaps[i-1])
+                hm /= hm.sum()
+            heatmaps_flattened.append(hm.flatten())
+            xi[i].extend(heatmaps_flattened[-1])
             hm -= hm.min()
             hm /= hm.max()
             heatmaps.append(hm)
@@ -66,7 +95,7 @@ def main():
         for i in range(1, len(heatmaps)):
             hm = cv2.cvtColor(cv2.applyColorMap((heatmaps[i] * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB) / 255.0
             axs[i+1].imshow(im_resized*0.6 + hm*0.4)
-            corr = np.corrcoef(heatmaps_raveled[0], heatmaps_raveled[i])[0, 1]
+            corr = np.corrcoef(heatmaps_flattened[0], heatmaps_flattened[i])[0, 1]
             corrs.append(corr)
             axs[i+1].set_title(f"Corr: {corr:.3f}")
             dir_name = os.path.basename(opt.fixation_heatmaps_dir[i-1])
